@@ -1,5 +1,9 @@
 package org.ubiquity.bytecode;
 
+import java.util.ArrayList;
+import java.util.Collection;
+
+import com.google.common.base.Stopwatch;
 import junit.framework.Assert;
 import ma.glasnost.orika.MapperFacade;
 import ma.glasnost.orika.MapperFactory;
@@ -9,14 +13,11 @@ import org.dozer.Mapper;
 import org.junit.Test;
 import org.ubiquity.Ubiquity;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
 /**
  * Benchmark test testing the speed of different copy frameworks.
  * This test should be run using the following arguments :
  * -XX:+PrintCompilation -verbose:gc
- *
+ * <p/>
  * Date: 03/06/12
  *
  * @author François LAROCHE
@@ -31,6 +32,7 @@ public class BenchmarkTest {
     private static final Ubiquity UBIQUITY = new Ubiquity();
     private static final Mapper DOZER = new DozerBeanMapper();
 
+
     static {
         MapperFactory factory = new DefaultMapperFactory.Builder().build();
         factory.build();
@@ -38,78 +40,87 @@ public class BenchmarkTest {
 
     }
 
+
     @Test
     public void displayStats() {
         Collection<Order> orders = new ArrayList<Order>(LOOP_NUMBER);
         Order order = createOrder();
-        long start, end;
+        //long start, end;
+        Stopwatch stopwatch = new Stopwatch();
 
         System.out.println("Warming up ORIKA...");
-        start = System.nanoTime();
-        for(int i = 0; i < WARM_LOOP_NUMBER; i++) {
+        stopwatch.start();
+        for (int i = 0; i < WARM_LOOP_NUMBER; i++) {
             ORIKA.map(order, Order.class);
         }
-        end = System.nanoTime();
-        long orikaWarmTime = end - start;
+        stopwatch.stop();
+        long orikaWarmTime = stopwatch.elapsedMillis();
+        stopwatch.reset();
         System.gc();
         System.out.println("Executing ORIKA");
-        start = System.nanoTime();
-        for(int i = 0; i < LOOP_NUMBER; i++) {
+        stopwatch.start();
+        for (int i = 0; i < LOOP_NUMBER; i++) {
             orders.add(ORIKA.map(order, Order.class));
         }
-        end = System.nanoTime();
-        long orikaTime = end - start;
+        stopwatch.stop();
+        long orikaTime = stopwatch.elapsedMillis();
+        stopwatch.reset();
         System.out.println("Finished executing ORIKA");
         Assert.assertEquals(LOOP_NUMBER, orders.size());
         orders.clear();
 
         System.out.println("Warming up UBIQUITY...");
-        start = System.nanoTime();
-        for(int i = 0; i < WARM_LOOP_NUMBER; i++) {
+        stopwatch.start();
+        for (int i = 0; i < WARM_LOOP_NUMBER; i++) {
             UBIQUITY.map(order, Order.class);
         }
-        end = System.nanoTime();
-        long ubiquityWarmTime = end - start;
+        stopwatch.stop();
+        long ubiquityWarmTime = stopwatch.elapsedMillis();
+        stopwatch.reset();
         System.gc();
         System.out.println("Executing UBIQUITY");
-        start = System.nanoTime();
-        for(int i = 0; i < LOOP_NUMBER; i++) {
+        stopwatch.start();
+        for (int i = 0; i < LOOP_NUMBER; i++) {
             orders.add(UBIQUITY.map(order, Order.class));
         }
-        end = System.nanoTime();
-        long ubiquityTime = end - start;
+        stopwatch.stop();
+        long ubiquityTime = stopwatch.elapsedMillis();
+        stopwatch.reset();
         System.out.println("Finished executing UBIQUITY");
         Assert.assertEquals(LOOP_NUMBER, orders.size());
         orders.clear();
 
         System.out.println("Warming up DOZER...");
-        start = System.nanoTime();
-        for(int i = 0; i < WARM_LOOP_NUMBER; i++) {
+        stopwatch.start();
+        for (int i = 0; i < WARM_LOOP_NUMBER; i++) {
             DOZER.map(order, Order.class);
         }
-        end = System.nanoTime();
-        long dozerWarmTime = end - start;
+        stopwatch.stop();
+        long dozerWarmTime = stopwatch.elapsedMillis();
+        stopwatch.reset();
         System.gc();
 
         System.out.println("Executing DOZER");
-        start = System.nanoTime();
-        for(int i = 0; i < LOOP_NUMBER; i++) {
+        stopwatch.start();
+        for (int i = 0; i < LOOP_NUMBER; i++) {
             orders.add(DOZER.map(order, Order.class));
         }
-        end = System.nanoTime();
-        long dozerTime = end - start;
+        stopwatch.stop();
+        long dozerTime = stopwatch.elapsedMillis();
+        stopwatch.reset();
         System.out.println("Finished executing DOZER");
         Assert.assertEquals(LOOP_NUMBER, orders.size());
         orders.clear();
 
-        System.out.println("Ubiquity copying took " + ubiquityWarmTime + "ns, which makes " + ubiquityWarmTime / NANO_TO_MS + "ms");
-        System.out.println("Orika copying took " + orikaWarmTime + "ns, which makes " + orikaWarmTime / NANO_TO_MS + "ms");
-        System.out.println("Dozer copying took " + dozerWarmTime + "ns, which makes " + dozerWarmTime / NANO_TO_MS + "ms");
+        System.out.println("Ubiquity copying took " + ubiquityWarmTime + "ms");
+        System.out.println("Orika copying took " + orikaWarmTime + "ms");
+        System.out.println("Dozer copying took " + dozerWarmTime + "ms");
 
-        System.out.println("Ubiquity copying took (initialized) " + ubiquityTime + "ns, which makes " + ubiquityTime / NANO_TO_MS + "ms");
-        System.out.println("Orika copying took (initialized) " + orikaTime + "ns, which makes " + orikaTime / NANO_TO_MS + "ms");
-        System.out.println("Dozer copying took (initialized) " + dozerTime + "ns, which makes " + dozerTime / NANO_TO_MS + "ms");
+        System.out.println("Ubiquity copying took (initialized) " + ubiquityTime + "ms");
+        System.out.println("Orika copying took (initialized) " + orikaTime + "ms");
+        System.out.println("Dozer copying took (initialized) " + dozerTime + "ms");
     }
+
 
     private Order createOrder() {
         Order order = new Order();
@@ -132,12 +143,16 @@ public class BenchmarkTest {
         return order;
     }
 
+
     public static class ReferenceObject {
         private Long id;
         private String label;
         private String code;
 
-        public ReferenceObject() {}
+
+        public ReferenceObject() {
+        }
+
 
         public ReferenceObject(Long id, String label, String code) {
             this.id = id;
@@ -145,25 +160,31 @@ public class BenchmarkTest {
             this.code = code;
         }
 
+
         public Long getId() {
             return id;
         }
+
 
         public void setId(Long id) {
             this.id = id;
         }
 
+
         public String getLabel() {
             return label;
         }
+
 
         public void setLabel(String label) {
             this.label = label;
         }
 
+
         public String getCode() {
             return code;
         }
+
 
         public void setCode(String code) {
             this.code = code;
@@ -176,33 +197,41 @@ public class BenchmarkTest {
         private ReferenceObject productType;
         private String description;
 
+
         public Long getId() {
             return id;
         }
+
 
         public void setId(Long id) {
             this.id = id;
         }
 
+
         public String getName() {
             return name;
         }
+
 
         public void setName(String name) {
             this.name = name;
         }
 
+
         public ReferenceObject getProductType() {
             return productType;
         }
+
 
         public void setProductType(ReferenceObject productType) {
             this.productType = productType;
         }
 
+
         public String getDescription() {
             return description;
         }
+
 
         public void setDescription(String description) {
             this.description = description;
@@ -214,25 +243,31 @@ public class BenchmarkTest {
         private ReferenceObject orderType;
         private Collection<Product> products;
 
+
         public Long getId() {
             return id;
         }
+
 
         public void setId(Long id) {
             this.id = id;
         }
 
+
         public ReferenceObject getOrderType() {
             return orderType;
         }
+
 
         public void setOrderType(ReferenceObject orderType) {
             this.orderType = orderType;
         }
 
+
         public Collection<Product> getProducts() {
             return products;
         }
+
 
         public void setProducts(Collection<Product> products) {
             this.products = products;
